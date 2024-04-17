@@ -84,7 +84,47 @@ public:
     }
 };
 
-std::vector<Token> token_list;
+/**
+ * Using Encapsulation and Data Hiding, we have a class
+ * called `StoreToken` which is used for storing all
+ * the tokens, and can be read through a function.
+ */
+class StoreToken {
+private:
+    std::vector<Token> token_list;
+public:
+    void addToken(const Token& token) {
+        token_list.push_back(token);
+    }
+
+    /// Gets all the private and public token message for a user.
+    std::string getMessagesForUser(const std::string& usr_name) const {
+        std::string above_message;
+        for (Token token : token_list) {
+            if (token.creator != usr_name) {
+                /**
+                 * Compare to `*` for everyone (public) message.
+                 * If not, check if the `receiver` of the token
+                 * is the current user in the session.
+                 */
+                if (token.receiver == "*") {
+                    above_message += token.ReadMessage("*", "")+ "\n";
+                } else if (token.receiver == usr_name) {
+                    clearScreen();
+                    std::cout << "Enter the secret code for the message from " << token.creator << ": ";
+                    std::string inp_code;
+                    std::getline(std::cin, inp_code);
+                    above_message += token.ReadMessage(usr_name, inp_code) + "\n";
+                }
+                /**
+                 * This will append all messages to a variable `above_message`,
+                 * which display above the screen and below is the session selection.
+                 */
+            }
+        }
+        return above_message;
+    }
+};
 
 /// Displays the main menu.
 void mainMenu() {
@@ -108,11 +148,13 @@ void sessionMenu(std::string usr_name, std::string above_message) {
 }
 
 /// Handles the session menu selection.
-void sessionMenuSelection() {
+void sessionMenuSelection(StoreToken& store) {
     clearScreen();
     std::string usr_name, above_message;
-    std::cout << "Enter your user name: ";
-    std::getline(std::cin, usr_name);
+    while (usr_name.empty() == true) {
+        std::cout << "Enter your user name: ";
+        std::getline(std::cin, usr_name);
+    }
     above_message =  "Welcome, " + usr_name;
 
     /// Put the program runs in a loop until the user ends the session.
@@ -130,8 +172,15 @@ void sessionMenuSelection() {
             std::cout << "Create a new message to everyone.\n\n";
             std::cout << "Enter your message: ";
             std::getline(std::cin, message);
+            /**
+             * Avoid sending an empty message.
+             */
+            if (message.empty() == true) {
+                above_message = "You cannot send an empty message.";
+                continue;
+            }
             Token new_token(message, usr_name, "*", "");
-            token_list.push_back(new_token);
+            store.addToken(new_token);
             above_message = "Created a message to everyone successfully!";
 
         } else if (inp == "2") {
@@ -157,47 +206,24 @@ void sessionMenuSelection() {
             }
             std::cout << "Enter your message: ";
             std::getline(std::cin, message);
+            /**
+             * We cannot send an empty message.
+             */
+            if (message.empty() == true) {
+                above_message = "You cannot send an empty message.";
+                continue;
+            }
             Token new_token(message, usr_name, receiver, secret_code);
-            token_list.push_back(new_token);
+            store.addToken(new_token);
             above_message = "Created a message to " + receiver + " successfully!";
 
         } else if (inp == "3") {
-            /// Loop through the vector of stored tokens.
-            for (Token token : token_list) {
-                /**
-                 * Make sure that the creator of the token is
-                 * different from the current user in the session.
-                 * There is no point in reading our own created token.
-                 */
-                if (token.creator != usr_name) {
-                    /**
-                     * Compare to `*` for everyone (public) message.
-                     * If not, check if the `receiver` of the token
-                     * is the current user in the session.
-                     */
-                    if (token.receiver == "*") {
-                        above_message += token.ReadMessage("*", "")+ "\n";
-                    } else if (token.receiver == usr_name) {
-                        clearScreen();
-                        std::cout << "Enter the secret code for the message from " << token.creator << ": ";
-                        std::string inp_code;
-                        std::getline(std::cin, inp_code);
-                        above_message += token.ReadMessage(usr_name, inp_code) + "\n";
-                    }
-                    /**
-                     * This will append all messages to a variable `above_message`,
-                     * which display above the screen and below is the session selection.
-                     */
-                }
-            }
-            /**
-             * If there is nothing to append, meaning .empty() is true,
-             * meaning there is no message for the current user in the session.
-             */
-            if (above_message.empty() == true) {
+            std::string messages = store.getMessagesForUser(usr_name);
+            if (messages.empty()) {
                 above_message = "You have no message.";
+            } else {
+                above_message = messages;
             }
-
         } else if (inp == "0") {
             break;
         } else {
@@ -207,6 +233,8 @@ void sessionMenuSelection() {
 }
 
 int main() {
+    StoreToken store;
+
     while (true) {
         mainMenu();
         std::cout << "\nEnter your selection: ";
@@ -216,12 +244,7 @@ int main() {
         if (inp == "0") {
             break;
         } else if (inp == "1") {
-            sessionMenuSelection();
-        } else if (inp == "2") {
-            for (Token token: token_list) {
-                std::cout << token.DebugObject() << std::endl;
-            }
-            std::system("pause");
+            sessionMenuSelection(store);
         } else {
             std::cout << "Invalid option. Please try again." << std::endl;
         }
