@@ -74,14 +74,6 @@ public:
             }
         }
     }
-    std::string DebugObject() {
-        std::string msg = "";
-        msg += message + "";
-        msg += secret_code + "";
-        msg += creator + "";
-        msg += receiver + "";
-        return msg;
-    }
 };
 
 /**
